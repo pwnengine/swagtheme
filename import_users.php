@@ -1,19 +1,13 @@
-
-<?php
-define('IN_MYBB', 1);
-define('NO_ONLINE', 1);
-
-require_once __DIR__ . "/global.php";
-require_once MYBB_ROOT . "inc/datahandlers/user.php";
-
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-$data = json_decode(file_get_contents("users.json"), true);
-
-$userhandler = new UserDataHandler("insert");
-
 foreach ($data as $u) {
+    // Check if username or email already exists
+    $query = $db->simple_select("users", "uid", "username = '".$db->escape_string($u['username'])."' OR email = '".$db->escape_string($u['email'])."'");
+    
+    if ($db->num_rows($query) > 0) {
+        echo "Skipped (already exists): {$u['username']}\n";
+        continue;
+    }
+
+    // Your existing user array setup...
     $birth_time = strtotime($u["birth_date"]);
     $join_time = strtotime($u["join_date"]);
 
@@ -23,7 +17,7 @@ foreach ($data as $u) {
         "password2" => $u["password"],
         "email" => $u["email"],
         "email2" => $u["email"],
-        "usergroup" => 2, // Registered
+        "usergroup" => 2,
         "referrer" => "",
         "timezone" => "0",
         "language" => "",
@@ -34,29 +28,7 @@ foreach ($data as $u) {
             "year" => date("Y", $birth_time)
         ],
         "profile_fields" => [],
-        "options" => [
-            "allownotices" => 1,
-            "hideemail" => 0,
-            "subscriptionmethod" => 0,
-            "invisible" => 0,
-            "receivepms" => 1,
-            "pmnotice" => 1,
-            "pmnotify" => 0,
-            "threadmode" => "",
-            "showsigs" => 1,
-            "showavatars" => 1,
-            "showquickreply" => 1,
-            "showredirect" => 1,
-            "tpp" => 0,
-            "ppp" => 0,
-            "daysprune" => 0,
-            "dateformat" => "",
-            "timeformat" => "",
-            "dst" => 0,
-            "dstcorrection" => 0,
-            "receivefrombuddy" => 0,
-            "pmrequirepassword" => 0
-        ]
+        "options" => [ /* ... your options ... */ ]
     ];
 
     $userhandler->set_data($user);
@@ -65,7 +37,6 @@ foreach ($data as $u) {
         $user_info = $userhandler->insert_user();
         $uid = $user_info['uid'];
 
-        // Set signature as bio
         $db->update_query("users", [
             "signature" => $db->escape_string($u["bio"])
         ], "uid={$uid}");
